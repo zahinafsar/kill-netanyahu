@@ -49,7 +49,7 @@ export function TopScoreCard() {
               {index === 1 && <p>🥈</p>}
               {index === 2 && <p>🥉</p>}
             </span>
-            <p className="font-semibold">{scorer.name}</p>
+            <p className="font-semibold max-w-[180px] truncate">{scorer.name}</p>
             {index <= 2 && (
               <div className="text-xs px-2 py-0.5 bg-slate-500 rounded-full">
                 <p>#{index + 1}</p>

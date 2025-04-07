@@ -10,6 +10,7 @@ import { CustomInput } from "@/components/custom-input";
 import { CustomButton } from "./custom-button";
 import { TopScoreCard } from "@/components/top-score-card";
 import { Maximize2, Minimize2, Github } from "lucide-react";
+import { useAudio } from "@/hooks/use-audio";
 
 // Game constants
 const GRAVITY = 0.6;
@@ -29,6 +30,7 @@ const INITIAL_DISTANCE = 300;
 const DISTANCE_DECREASE = 50;
 const MIN_SAFE_DISTANCE = 50;
 const GAME_ASPECT_RATIO = 16 / 9;
+const GAME_OVER_ANIMATION_DURATION = 3000; // 3 seconds for game over animation
 
 export default function KillNetanyahu() {
   // Refs
@@ -36,10 +38,18 @@ export default function KillNetanyahu() {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const enemyRef = useRef<HTMLDivElement>(null);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const {
+    playBackgroundMusic,
+    stopBackgroundMusic,
+    playHitSound,
+    playPunchSound,
+  } = useAudio();
 
   // State
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [showGameOverAnimation, setShowGameOverAnimation] = useState(false);
   const [score, setScore] = useState(0);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [playerPosition, setPlayerPosition] = useState({ x: 0, y: 0 });
@@ -137,7 +147,7 @@ export default function KillNetanyahu() {
         jump();
       }
 
-      if (e.code === "Space" && gameOver) {
+      if (e.code === "Space" && gameOver && !showGameOverAnimation) {
         restartGame();
       }
     };
@@ -147,7 +157,7 @@ export default function KillNetanyahu() {
         jump();
       }
 
-      if (gameOver) {
+      if (gameOver && !showGameOverAnimation) {
         restartGame();
       }
     };
@@ -159,7 +169,7 @@ export default function KillNetanyahu() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("touchstart", handleTouchStart);
     };
-  }, [gameOver]);
+  }, [gameOver, showGameOverAnimation]);
 
   // Initialize game
   useEffect(() => {
@@ -169,6 +179,7 @@ export default function KillNetanyahu() {
       dimensions.width > 0 &&
       dimensions.height > 0
     ) {
+      playBackgroundMusic();
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -347,6 +358,7 @@ export default function KillNetanyahu() {
         playerBottom > obstacleTop &&
         playerTop < obstacleBottom
       ) {
+        playHitSound();
         const newDistance = Math.max(
           MIN_SAFE_DISTANCE,
           gameState.distance - DISTANCE_DECREASE
@@ -498,11 +510,19 @@ export default function KillNetanyahu() {
   const startGame = () => {
     setGameStarted(true);
     setGameOver(false);
+    setShowGameOverAnimation(false);
   };
 
   const endGame = async () => {
-    setGameOver(true);
-    cancelAnimationFrame(gameStateRef.current.animationFrameId);
+    stopBackgroundMusic();
+    setShowGameOverAnimation(true);
+      playPunchSound();
+
+    setTimeout(() => {
+      setShowGameOverAnimation(false);
+      setGameOver(true);
+      cancelAnimationFrame(gameStateRef.current.animationFrameId);
+    }, GAME_OVER_ANIMATION_DURATION);
   };
 
   const restartGame = async () => {
@@ -516,6 +536,7 @@ export default function KillNetanyahu() {
     setGameOver(false);
     setScore(0);
     setGameStarted(true);
+    setShowGameOverAnimation(false);
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -611,69 +632,108 @@ export default function KillNetanyahu() {
             </p>
           </div>
 
-          {/* Player div */}
-          <div
-            ref={playerRef}
-            className="absolute"
-            style={{
-              width: `${PLAYER_WIDTH}px`,
-              height: `${PLAYER_HEIGHT}px`,
-              left: `${playerPosition.x || -9999}px`,
-              top: `${playerPosition.y || -9999}px`,
-              transition: "none",
-            }}
-          >
-            <img
-              src="/netanyahu.png"
-              alt="netanyahu"
-              className="absolute"
-              style={{
-                marginTop: `-30px`,
-                marginLeft: `30px`,
-                width: `${PLAYER_WIDTH / 2}px`,
-              }}
-            />
-            <img src="/human.gif" alt="Player" />
-          </div>
-
-          {/* Enemy div */}
-          <div
-            ref={enemyRef}
-            className="absolute"
-            style={{
-              width: `${ENEMY_WIDTH}px`,
-              height: `${ENEMY_HEIGHT}px`,
-              left: `${enemyPosition.x || -9999}px`,
-              top: `${enemyPosition.y || -9999}px`,
-              transition: "none",
-            }}
-          >
-            {[
-              { filter: "brightness(1.2) contrast(1.2)", marginLeft: "0px" },
-              { filter: "brightness(0.8) contrast(1.4)", marginLeft: "-20px" },
-              { filter: "brightness(1.4) contrast(0.9)", marginLeft: "-40px" },
-              { filter: "brightness(0.9) contrast(1.6)", marginLeft: "-60px" },
-              { filter: "brightness(1.2) contrast(1.2)", marginLeft: "-80px" },
-              { filter: "brightness(0.8) contrast(1.4)", marginLeft: "-100px" },
-              { filter: "brightness(1.4) contrast(0.9)", marginLeft: "-120px" },
-              { filter: "brightness(0.9) contrast(1.6)", marginLeft: "-140px" },
-            ].map((style, index) => (
-              <img
-                key={index}
-                src="/human.gif"
-                alt="Enemy"
+          {!gameOver && !showGameOverAnimation && (
+            <>
+              {/* Player div */}
+              <div
+                ref={playerRef}
+                className="absolute"
                 style={{
-                  position: "absolute",
-                  filter: style.filter,
-                  marginLeft: style.marginLeft,
+                  width: `${PLAYER_WIDTH}px`,
+                  height: `${PLAYER_HEIGHT}px`,
+                  left: `${playerPosition.x || -9999}px`,
+                  top: `${playerPosition.y || -9999}px`,
+                  transition: "none",
                 }}
-              />
-            ))}
-          </div>
+              >
+                <img
+                  src="/netanyahu.png"
+                  alt="netanyahu"
+                  className="absolute"
+                  style={{
+                    marginTop: `-30px`,
+                    marginLeft: `30px`,
+                    width: `${PLAYER_WIDTH / 2}px`,
+                  }}
+                />
+                <img src="/human.gif" alt="Player" />
+              </div>
+
+              {/* Enemy div */}
+              <div
+                ref={enemyRef}
+                className="absolute"
+                style={{
+                  width: `${ENEMY_WIDTH}px`,
+                  height: `${ENEMY_HEIGHT}px`,
+                  left: `${enemyPosition.x || -9999}px`,
+                  top: `${enemyPosition.y || -9999}px`,
+                  transition: "none",
+                }}
+              >
+                {[
+                  {
+                    filter: "brightness(1.2) contrast(1.2)",
+                    marginLeft: "0px",
+                  },
+                  {
+                    filter: "brightness(0.8) contrast(1.4)",
+                    marginLeft: "-20px",
+                  },
+                  {
+                    filter: "brightness(1.4) contrast(0.9)",
+                    marginLeft: "-40px",
+                  },
+                  {
+                    filter: "brightness(0.9) contrast(1.6)",
+                    marginLeft: "-60px",
+                  },
+                  {
+                    filter: "brightness(1.2) contrast(1.2)",
+                    marginLeft: "-80px",
+                  },
+                  {
+                    filter: "brightness(0.8) contrast(1.4)",
+                    marginLeft: "-100px",
+                  },
+                  {
+                    filter: "brightness(1.4) contrast(0.9)",
+                    marginLeft: "-120px",
+                  },
+                  {
+                    filter: "brightness(0.9) contrast(1.6)",
+                    marginLeft: "-140px",
+                  },
+                ].map((style, index) => (
+                  <img
+                    key={index}
+                    src="/human.gif"
+                    alt="Enemy"
+                    style={{
+                      position: "absolute",
+                      filter: style.filter,
+                      marginLeft: style.marginLeft,
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Flash effect on collision */}
           {gameStateRef.current?.flashEffect && (
             <div className="absolute inset-0 bg-red-500 opacity-30"></div>
+          )}
+
+          {/* Game over animation */}
+          {showGameOverAnimation && (
+            <div className="absolute inset-0 bg-black flex items-center justify-center">
+              <img
+                src="/hitting.gif"
+                alt="Game Over"
+                className="w-full h-full object-contain"
+              />
+            </div>
           )}
 
           {!gameStarted && (
@@ -695,7 +755,7 @@ export default function KillNetanyahu() {
             </ModalOverlay>
           )}
 
-          {gameOver && (
+          {gameOver && !showGameOverAnimation && (
             <ModalOverlay>
               {showLoginForm ? (
                 <FormContainer

@@ -9,7 +9,7 @@ import { ScoreDisplay } from "@/components/score-display";
 import { CustomInput } from "@/components/custom-input";
 import { CustomButton } from "./custom-button";
 import { TopScoreCard } from "@/components/top-score-card";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Github } from "lucide-react";
 
 // Game constants
 const GRAVITY = 0.6;
@@ -740,7 +740,22 @@ export default function KillNetanyahu() {
                   <div className="w-full space-y-4 mb-8">
                     <ScoreDisplay label="Score" value={score} />
                   </div>
-                  <CustomButton onClick={restartGame}>Play Again</CustomButton>
+                  <div className="flex flex-col gap-3 w-full">
+                    <CustomButton onClick={restartGame} className="w-full">
+                      Play Again
+                    </CustomButton>
+                  </div>
+                  <div className="mt-6 flex justify-center">
+                    <a
+                      href="https://github.com/zahinafsar/kill-netanyahu"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
+                    >
+                      <Github className="w-4 h-4" />
+                      <span>Star on GitHub</span>
+                    </a>
+                  </div>
                 </FormContainer>
               )}
             </ModalOverlay>
